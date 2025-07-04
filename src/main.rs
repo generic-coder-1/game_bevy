@@ -4,9 +4,10 @@ use bevy::{
 };
 use bevy_inspector_egui::{bevy_egui::EguiPlugin, quick::WorldInspectorPlugin};
 use editor::EditorPlugin;
+mod chunk;
 mod editor;
 mod ui;
-mod chunk;
+mod camera_movement;
 
 fn main() {
     App::new()
@@ -21,11 +22,22 @@ fn main() {
                 })
                 .set(ImagePlugin::default_nearest()), //because we are using pixel art, we want nearest neighbor
         )
-        .add_plugins(EguiPlugin { enable_multipass_for_primary_context: true })
+        .add_plugins(EguiPlugin {
+            enable_multipass_for_primary_context: true,
+        })
         .add_plugins(WorldInspectorPlugin::new())
         .add_plugins((ui::UiPlugin, EditorPlugin))
         .add_systems(Startup, |mut commands: Commands| {
-            commands.spawn((Camera2d, Transform::from_scale(Vec3::splat(0.5))));
+            commands.spawn((
+                Camera2d,
+                Projection::Orthographic(OrthographicProjection {
+                    scaling_mode: bevy::render::camera::ScalingMode::AutoMin {
+                        min_width: 800.0,
+                        min_height: 600.0,
+                    },
+                    ..OrthographicProjection::default_2d()
+                }),
+            ));
         })
         .add_systems(Update, fullscreen_system)
         .init_state::<AppState>()

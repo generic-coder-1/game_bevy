@@ -71,7 +71,6 @@ pub struct ChunkMaterial {
     #[texture(0, sample_type = "u_int")]
     pub tile_data: Chunk,
     #[texture(1)]
-    #[sampler(2)]
     pub tile_atlas: Handle<Image>,
 }
 
@@ -156,7 +155,7 @@ pub fn chunk_bundle(
     let mat = ChunkMaterial::new(asset_server);
     chunks.chunks.insert(pos.clone(), mat.tile_data.clone());
     (
-        Mesh2d(meshs.add(Rectangle::from_length(Chunk::CHUNK_SIZE as f32))),
+        Mesh2d(meshs.add(Rectangle::from_length(Chunk::CHUNK_SIZE as f32*32.0))),
         MeshMaterial2d(material.add(mat)),
         Transform::from_xyz(
             pos.x as f32 * Chunk::CHUNK_SIZE as f32,

@@ -7,19 +7,21 @@ use bevy::{
 };
 
 use crate::{
-    chunk::{chunk_bundle, ChunkMaterial, Chunks},
-    AppState,
+    camera_movement::CameraMovemntPlugin, chunk::{chunk_bundle, ChunkMaterial, Chunks}, AppState
 };
 
 pub struct EditorPlugin;
 
 impl Plugin for EditorPlugin {
     fn build(&self, app: &mut bevy::app::App) {
-        app.add_plugins(Material2dPlugin::<ChunkMaterial>::default())
-            .add_systems(
-                OnEnter(AppState::Editing),
-                (create_chunks_resource, create_ball).chain(),
-            );
+        app.add_plugins((
+            Material2dPlugin::<ChunkMaterial>::default(),
+            CameraMovemntPlugin,
+        ))
+        .add_systems(
+            OnEnter(AppState::Editing),
+            (create_chunks_resource, create_ball).chain(),
+        );
     }
 }
 
