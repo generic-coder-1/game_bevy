@@ -4,10 +4,12 @@ use bevy::{
 };
 use bevy_inspector_egui::{bevy_egui::EguiPlugin, quick::WorldInspectorPlugin};
 use editor::EditorPlugin;
+use mouse_management::MouseManagementPlugin;
 mod chunk;
 mod editor;
 mod ui;
 mod camera_movement;
+mod mouse_management;
 
 fn main() {
     App::new()
@@ -26,7 +28,7 @@ fn main() {
             enable_multipass_for_primary_context: true,
         })
         .add_plugins(WorldInspectorPlugin::new())
-        .add_plugins((ui::UiPlugin, EditorPlugin))
+        .add_plugins((ui::UiPlugin, EditorPlugin, MouseManagementPlugin))
         .add_systems(Startup, |mut commands: Commands| {
             commands.spawn((
                 Camera2d,

@@ -13,12 +13,13 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let atlas_width = 3u;
     
     let tile_index = textureLoad(tile_data, vec2<u32>(in.uv*chunk_size), 0).x;
-    let current_pixel = vec2<u32>(in.uv * vec2<f32>(textureDimensions(tile_data)) * f32(tile_size));
+    let current_pixel = min(vec2<u32>(in.uv * vec2<f32>(textureDimensions(tile_data)) * f32(tile_size)), tile_size * textureDimensions(tile_data));
 
     let tile_col = tile_index%atlas_width;
     let tile_row = tile_index/atlas_width;
     let atlas_tile_offset = vec2<u32>(tile_col, tile_row)*tile_size;
-    let atlas_uv:vec2<u32> = atlas_tile_offset + current_pixel%tile_size;
+    let atlas_uv:vec2<u32> = min(atlas_tile_offset + current_pixel%tile_size, textureDimensions(tile_atlas));
+
 
     let color = textureLoad(tile_atlas, atlas_uv, 0);
     if color.w<0.999{
