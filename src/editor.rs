@@ -29,7 +29,11 @@ impl Plugin for EditorPlugin {
         .add_systems(
             Update,
             change_tile
-                .run_if(input_just_pressed(MouseButton::Left))
+                .run_if(input_just_pressed(MouseButton::Left).or(
+                        resource_changed::<MousePosition>.and(
+                            input_pressed(MouseButton::Left)
+                        )
+                    ))
                 .run_if(not(input_pressed(KeyCode::ShiftLeft)))
                 .run_if(in_state(AppState::Editing)),
         );
@@ -41,6 +45,7 @@ fn change_tile(
     cur_pos: Res<MousePosition>,
     chunks: ResMut<Chunks>,
     mut chunk_data: ResMut<Assets<Image>>,
+    mut chunk_material_data: ResMut<Assets<ChunkMaterial>>,
 ) {
     let (transform, camera) = camera.single().expect("camera is loaded");
     let world_pos = camera
@@ -50,15 +55,20 @@ fn change_tile(
         .rem_euclid(Vec2::splat(Chunk::CHUNK_SIZE as f32))
         .as_uvec2();
     let chunk_pos = world_pos.div_euclid(Vec2::splat(Chunk::CHUNK_SIZE as f32));
-    
-    let Some(chunk) = chunks
+
+    let Some(chunk_material) = chunks
         .chunks
         .get(&Into::<ChunkPos>::into(chunk_pos.as_ivec2()))
     else {
         return;
     };
-    dbg!(chunk.get_tile_at(&chunk_data, tile_pos.x, tile_pos.y)); 
-    dbg!((world_pos, tile_pos, chunk_pos));
+
+    let Some(chunk_material) = chunk_material_data.get_mut(chunk_material) else {
+        return;
+    };
+
+    let chunk = chunk_material.tile_data.clone();
+
     chunk.set_tile_at(&mut chunk_data, tile_pos.x, tile_pos.y, Tile::Block);
 }
 

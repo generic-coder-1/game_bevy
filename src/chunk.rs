@@ -64,7 +64,7 @@ impl Chunk {
             return;
         };
         let color = Into::<u8>::into(tile) as f32 / u8::MAX as f32;
-        let _ = image.set_color_at(x, y, Color::linear_rgb(color, color, color));
+        let _ = image.set_color_at(x, Self::CHUNK_SIZE as u32 - y - 1, Color::linear_rgb(color, color, color));
     }
 }
 
@@ -144,7 +144,7 @@ impl TryFrom<u8> for Tile {
 
 #[derive(Resource, Default)]
 pub struct Chunks {
-    pub chunks: HashMap<ChunkPos, Chunk>,
+    pub chunks: HashMap<ChunkPos, Handle<ChunkMaterial>>,
 }
 
 pub fn chunk_bundle(
@@ -154,11 +154,11 @@ pub fn chunk_bundle(
     mut chunks: ResMut<Chunks>,
     asset_server: Res<AssetServer>,
 ) -> (Mesh2d, MeshMaterial2d<ChunkMaterial>, Transform) {
-    let mat = ChunkMaterial::new(asset_server);
-    chunks.chunks.insert(pos.clone(), mat.tile_data.clone());
+    let mat = material.add(ChunkMaterial::new(asset_server));
+    chunks.chunks.insert(pos.clone(), mat.clone());
     (
         Mesh2d(meshs.add(Rectangle::from_length(Chunk::CHUNK_SIZE as f32))),
-        MeshMaterial2d(material.add(mat)),
+        MeshMaterial2d(mat),
         Transform::from_xyz(
             (pos.x as f32 + 0.5) * Chunk::CHUNK_SIZE as f32,
             (pos.y as f32 + 0.5) * Chunk::CHUNK_SIZE as f32,
