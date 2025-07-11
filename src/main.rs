@@ -37,6 +37,7 @@ fn main() {
                         min_width: 800.0,
                         min_height: 600.0,
                     },
+                    scale: 1.0/32.0,
                     ..OrthographicProjection::default_2d()
                 }),
             ));

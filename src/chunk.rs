@@ -2,15 +2,17 @@ use bevy::{
     asset::RenderAssetUsages,
     platform::collections::HashMap,
     prelude::*,
-    render::render_resource::{AsBindGroup, Extent3d, TextureDimension, TextureFormat},
+    render::render_resource::{
+        AsBindGroup, Extent3d, TextureDimension, TextureFormat, TextureUsages,
+    },
     sprite::Material2d,
 };
 
 #[derive(Component, Deref, Hash, PartialEq, Eq, Clone)]
-pub struct ChunkPos(UVec2);
+pub struct ChunkPos(IVec2);
 
-impl From<UVec2> for ChunkPos {
-    fn from(value: UVec2) -> Self {
+impl From<IVec2> for ChunkPos {
+    fn from(value: IVec2) -> Self {
         Self(value)
     }
 }
@@ -28,23 +30,26 @@ impl Chunk {
     pub const CHUNK_SIZE: u8 = 32;
 
     pub fn empty(asset_server: Res<AssetServer>) -> Self {
-        Self(asset_server.add(Image::new_fill(
+        let image = Image::new_fill(
             Extent3d {
                 width: Self::CHUNK_SIZE as u32,
                 height: Self::CHUNK_SIZE as u32,
                 depth_or_array_layers: 1,
             },
             TextureDimension::D2,
-            &[u8::from(Tile::Flat); Self::CHUNK_SIZE as usize * Self::CHUNK_SIZE as usize],
+            &(0..((Self::CHUNK_SIZE as u32).pow(2)))
+                .map(|i| (i % 9) as u8)
+                .collect::<Vec<u8>>(),
             TextureFormat::R8Uint,
             RenderAssetUsages::RENDER_WORLD | RenderAssetUsages::MAIN_WORLD,
-        )))
+        );
+        Self(asset_server.add(image))
     }
 
-    pub fn get_tile_at(&self, images: ResMut<Assets<Image>>, x: usize, y: usize) -> Option<Tile> {
+    pub fn get_tile_at(&self, images: &ResMut<Assets<Image>>, x: u32, y: u32) -> Option<Tile> {
         ((images
             .get(self.0.id())?
-            .get_color_at(x as u32, y as u32)
+            .get_color_at(x, y)
             .ok()?
             .to_linear()
             .red
@@ -54,15 +59,12 @@ impl Chunk {
             .ok()
     }
 
-    pub fn set_tile_at(&self, mut images: ResMut<Assets<Image>>, x: usize, y: usize, tile: Tile) {
-        let Some(image) = images.get_mut(self.0.id()) else {
+    pub fn set_tile_at(&self, images: &mut ResMut<Assets<Image>>, x: u32, y: u32, tile: Tile) {
+        let Some(image) = (*images).get_mut(self.0.id()) else {
             return;
         };
-        let _ = image.set_color_at(
-            x as u32,
-            y as u32,
-            Color::linear_rgb(Into::<u8>::into(tile) as f32 / u8::MAX as f32, 0.0, 0.0),
-        );
+        let color = Into::<u8>::into(tile) as f32 / u8::MAX as f32;
+        let _ = image.set_color_at(x, y, Color::linear_rgb(color, color, color));
     }
 }
 
@@ -89,7 +91,7 @@ impl Material2d for ChunkMaterial {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum Tile {
     Elevator,
     Block,
@@ -142,7 +144,7 @@ impl TryFrom<u8> for Tile {
 
 #[derive(Resource, Default)]
 pub struct Chunks {
-    chunks: HashMap<ChunkPos, Chunk>,
+    pub chunks: HashMap<ChunkPos, Chunk>,
 }
 
 pub fn chunk_bundle(
@@ -155,11 +157,11 @@ pub fn chunk_bundle(
     let mat = ChunkMaterial::new(asset_server);
     chunks.chunks.insert(pos.clone(), mat.tile_data.clone());
     (
-        Mesh2d(meshs.add(Rectangle::from_length(Chunk::CHUNK_SIZE as f32*32.0))),
+        Mesh2d(meshs.add(Rectangle::from_length(Chunk::CHUNK_SIZE as f32))),
         MeshMaterial2d(material.add(mat)),
         Transform::from_xyz(
-            pos.x as f32 * Chunk::CHUNK_SIZE as f32,
-            pos.y as f32 * Chunk::CHUNK_SIZE as f32,
+            (pos.x as f32 + 0.5) * Chunk::CHUNK_SIZE as f32,
+            (pos.y as f32 + 0.5) * Chunk::CHUNK_SIZE as f32,
             0.0,
         ),
     )

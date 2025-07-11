@@ -31,7 +31,7 @@ fn zoom_system(
     cur_pos: Res<MousePosition>,
 ) {
     const CAMERA_ZOOM_SPEED: f32 = 10.0;
-    const CAMERA_ZOOM_RANGE: Range<f32> = 0.1..10.0;
+    const CAMERA_ZOOM_RANGE: Range<f32> = (1.0/8.0)..8.0;
     let delta_zoom: f32 = mouse_wheel_input.read().map(|e| e.y).sum();
     if delta_zoom == 0. {
         return;

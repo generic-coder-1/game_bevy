@@ -2,12 +2,16 @@ use bevy::{
     app::Plugin,
     asset::{AssetServer, Assets},
     ecs::system::{Commands, Res, ResMut},
+    input::common_conditions::{input_just_pressed, input_pressed},
     prelude::*,
     sprite::Material2dPlugin,
 };
 
 use crate::{
-    camera_movement::CameraMovemntPlugin, chunk::{chunk_bundle, ChunkMaterial, Chunks}, AppState
+    camera_movement::CameraMovemntPlugin,
+    chunk::{chunk_bundle, Chunk, ChunkMaterial, ChunkPos, Chunks, Tile},
+    mouse_management::MousePosition,
+    AppState,
 };
 
 pub struct EditorPlugin;
@@ -21,8 +25,41 @@ impl Plugin for EditorPlugin {
         .add_systems(
             OnEnter(AppState::Editing),
             (create_chunks_resource, create_ball).chain(),
+        )
+        .add_systems(
+            Update,
+            change_tile
+                .run_if(input_just_pressed(MouseButton::Left))
+                .run_if(not(input_pressed(KeyCode::ShiftLeft)))
+                .run_if(in_state(AppState::Editing)),
         );
     }
+}
+
+fn change_tile(
+    camera: Query<(&Transform, &Camera), With<Camera2d>>,
+    cur_pos: Res<MousePosition>,
+    chunks: ResMut<Chunks>,
+    mut chunk_data: ResMut<Assets<Image>>,
+) {
+    let (transform, camera) = camera.single().expect("camera is loaded");
+    let world_pos = camera
+        .viewport_to_world_2d(&GlobalTransform::from(*transform), cur_pos.pos)
+        .expect("viewport is valid");
+    let tile_pos = world_pos
+        .rem_euclid(Vec2::splat(Chunk::CHUNK_SIZE as f32))
+        .as_uvec2();
+    let chunk_pos = world_pos.div_euclid(Vec2::splat(Chunk::CHUNK_SIZE as f32));
+    
+    let Some(chunk) = chunks
+        .chunks
+        .get(&Into::<ChunkPos>::into(chunk_pos.as_ivec2()))
+    else {
+        return;
+    };
+    dbg!(chunk.get_tile_at(&chunk_data, tile_pos.x, tile_pos.y)); 
+    dbg!((world_pos, tile_pos, chunk_pos));
+    chunk.set_tile_at(&mut chunk_data, tile_pos.x, tile_pos.y, Tile::Block);
 }
 
 fn create_chunks_resource(mut commads: Commands) {
@@ -37,7 +74,7 @@ fn create_ball(
     chunks: ResMut<Chunks>,
 ) {
     commads.spawn(chunk_bundle(
-        uvec2(0, 0).into(),
+        ivec2(0, 0).into(),
         meshs,
         material,
         chunks,
